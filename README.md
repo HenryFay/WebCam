@@ -44,10 +44,9 @@ http://localhost:5000
 2. 启用公网访问：
    ```bash
    # Linux/macOS
-export USE_NGROK=true
-
+   export USE_NGROK=true
    # Windows PowerShell
-$env:USE_NGROK="true"
+   $env:USE_NGROK="true"
    ```
 
 ## 常见问题
