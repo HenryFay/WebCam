@@ -1,0 +1,6 @@
+flask==2.1.0
+opencv-python==4.5.1.48
+pyngrok==7.0.0
+Werkzeug==2.1.2
+Flask-BasicAuth==0.2.0
+numpy<2

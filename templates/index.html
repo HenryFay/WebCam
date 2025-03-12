@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络摄像头</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #1a1a1a;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .video-container:hover {
+            transform: translateY(-2px);
+        }
+        .video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .controls {
+            margin-top: 28px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #4a90e2 0%, #2673c8 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(38, 115, 200, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 25%,
+                rgba(255,255,255,0.2) 50%,
+                transparent 75%
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                left: 200%;
+            }
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(38, 115, 200, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(38, 115, 200, 0.2);
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
+        .quality-control {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .quality-control select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video-container">
+            <img src="{{ url_for('video_feed') }}" alt="视频流" class="video-feed" id="videoFeed">
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="captureSnapshot()">截图</button>
+            <button class="btn" onclick="toggleFullscreen()">全屏</button>
+        </div>
+        <div class="quality-control">
+            <select id="qualitySelect" onchange="changeQuality()">
+                <option value="high">高质量</option>
+                <option value="medium" selected>中等质量</option>
+                <option value="low">低质量</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        function captureSnapshot() {
+            const canvas = document.createElement('canvas');
+            const video = document.getElementById('videoFeed');
+            canvas.width = video.naturalWidth;
+            canvas.height = video.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = 'snapshot.jpg';
+            link.href = canvas.toDataURL('image/jpeg');
+            link.click();
+        }
+
+        function changeQuality() {
+            const quality = document.getElementById('qualitySelect').value;
+            const videoFeed = document.getElementById('videoFeed');
+            const currentSrc = videoFeed.src;
+            const baseUrl = currentSrc.split('?')[0];
+            videoFeed.src = `${baseUrl}?quality=${quality}`;
+        }
+
+        // 自动刷新视频流（如果连接断开）
+        const videoFeed = document.getElementById('videoFeed');
+        videoFeed.onerror = function() {
+            setTimeout(() => {
+                videoFeed.src = videoFeed.src;
+            }, 1000);
+        };
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.video-container');
+            if (!document.fullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) { /* Safari */
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) { /* IE11 */
+                    container.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 添加双击全屏功能
+        document.querySelector('.video-container').addEventListener('dblclick', toggleFullscreen);
+        
+        // 保持现有的事件监听
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.querySelector('[onclick="toggleFullscreen()"]');
+            btn.textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+        });
+    </script>
+</body>
+</html>
